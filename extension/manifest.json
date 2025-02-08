@@ -1,0 +1,29 @@
+{
+    "name": "jurney",
+    "version": "1.0.0",
+    "author": "",
+    "description": "",
+    "manifest_version": 3,
+    "name": "Jurney",
+    "version": "1.0",
+    "description": "Jurney",
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_popup": "popup.html"
+    },
+    "permissions": [
+        "activeTab",
+        "tabs",
+        "storage",
+        "scripting",
+        "tabCapture"
+    ],
+    "content_scripts": [
+        {
+            "matches": ["<all_urls>"],
+            "js": ["content.js"]
+        }
+    ]
+  }

@@ -2,10 +2,12 @@ const https = require('https');
 
 const handleIARequest = (req, res) => {
     let body = '';
+    console.log("handleIARequest", req, res);
 
     req.on('data', chunk => {
         body += chunk.toString(); // Convertir le Buffer en chaîne
     });
+
 
     req.on('end', () => {
         const { input } = JSON.parse(body);

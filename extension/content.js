@@ -1,60 +1,118 @@
-// content.js
-console.log("content.js chargééééé");
+var mediaRecorder ;
+var recordedChunks = [];
+var seconds = 0
 
-const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-recognition.interimResults = true;
-
-recognition.onstart = () => {
-    console.log("Reconnaissance vocale démarrée");
-};
-
-recognition.onresult = (event) => {
-    const transcript = Array.from(event.results)
-        .map(result => result[0])
-        .map(result => result.transcript)
-        .join('');
-    console.log(transcript); // Affiche la transcription dans la console
-};
-
-recognition.onerror = (event) => {
-    console.error("Erreur de reconnaissance vocale:", event.error);
-};
-
-recognition.onend = () => {
-    console.log("Reconnaissance vocale terminée");
-};
-
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "startCapture") {
-        console.log("startCapture", chrome);
-        chrome.tabCapture.capture({ audio: true, video: false }, (stream) => {
-            console.log("stream", stream);
-            if (stream) {
-                const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-                recognition.interimResults = true;
-
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const source = audioContext.createMediaStreamSource(stream);
-                source.connect(audioContext.destination); // Connecte le flux audio
-
-                recognition.onresult = (event) => {
-                    const transcript = Array.from(event.results)
-                        .map(result => result[0])
-                        .map(result => result.transcript)
-                        .join('');
-                    console.log(transcript); // Affiche la transcription dans la console
-                };
-
-                recognition.onerror = (event) => {
-                    console.error("Erreur de reconnaissance vocale:", event.error);
-                };
-
-                recognition.start();
-                sendResponse({ status: "Capture started" });
-            } else {
-                console.error("Échec de la capture de l'audio");
-                sendResponse({ status: "Capture failed" });
-            }
-        });
+function stopRecord(recordedChunks){
+    if(mediaRecorder.state == 'recording'){
+        mediaRecorder.stop();
     }
-});
+    var blob = new Blob(recordedChunks, {
+        'type': 'video/mp4'
+      });
+      var url = URL.createObjectURL(blob);
+      
+      const downloadLink = document.createElement('a');
+
+    // Set the anchor's attributes
+    downloadLink.href = url;
+    downloadLink.download = 'demo.mp4'; // Specify the desired filename
+
+    sendToWhisper(url)
+
+
+    // Programmatically trigger a click event on the anchor to initiate the download
+    downloadLink.click();
+}
+// Listen for messages from content / popup
+chrome.runtime.onMessage.addListener(
+    function(request, sender, sendResponse) {
+        console.log(request)
+        if(request.type =="tabRecord"){
+            recordTab(request.streamId,request.tabId);
+            sendResponse("startRecord");
+        }
+        if(request.type  == "stopRecording"){
+            mediaRecorder.stop();
+            sendResponse("stopRecord");
+        }
+    }
+);
+// record the tab only
+async function recordTab(streamId,tabId){
+    
+    config = {
+        "audio": {
+            "mandatory": {
+                "chromeMediaSourceId": streamId,
+                "chromeMediaSource": "tab"
+            }
+        }
+    }
+
+    navigator.mediaDevices.getUserMedia(config).then(function (desktop) {
+        var stream = new MediaStream();
+        if(desktop){
+            audio = desktop.getAudioTracks()[0];
+            stream.addTrack(audio);
+        }
+        mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'audio/webm;codecs=opus',
+        });
+        
+        recordedChunks = [];
+        mediaRecorder.onstop=function(){
+            var tracks = {};
+            tracks.a = stream ? stream.getTracks() : [];
+            tracks.b = desktop ? desktop.getTracks() : [];
+            tracks.c =  [];
+            tracks.total = [...tracks.a, ...tracks.b,...tracks.c];
+            /*  */
+            for (var i = 0; i < tracks.total.length; i++) {
+                if (tracks.total[i]) {
+                    tracks.total[i].stop();
+                }
+            }
+            stopRecord(recordedChunks)
+        }
+        mediaRecorder.ondataavailable = e => {
+            if (e.data.size > 0) {
+                recordedChunks.push(e.data);
+            }
+        };
+        stream.onended = function(){
+            mediaRecorder.stop()
+        }
+        mediaRecorder.start()
+    })
+}
+
+
+function sendToWhisper(audioBase64) {
+    const apiKey = "test";  // Remplace par ta clé OpenAI
+console.log("audioBase64",audioBase64)
+    // Convertir le Base64 en Blob
+    fetch(audioBase64)
+        .then(res => res.blob())
+        .then(blob => {
+            const formData = new FormData();
+            formData.append("file", blob, "audio.webm");
+            formData.append("model", "whisper-1");
+            formData.append("language", "fr");
+
+            return fetch("https://api.openai.com/v1/audio/transcriptions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${apiKey}`
+                },
+                body: formData
+            });
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("data",data)
+        })
+        .catch(error => {
+            console.error("Erreur:", error);
+            
+        });
+}

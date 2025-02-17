@@ -1,14 +1,42 @@
-   <!-- popup.html -->
-   <!DOCTYPE html>
-   <html>
-   <head>
-       <meta charset="UTF-8">
-       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-       <title>Mon Extension</title>
-   </head>
-   <body>
-       <h1>Bienvenue dans mon extension !</h1>
-       <button id="start">Démarrer la transcription</button>
-       <script src="popup.js"></script>
-   </body>
-   </html>
+
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    /* Inline CSS for styling */
+    body {
+      width: 210px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 20px;
+    }
+
+    button {
+      background-color: #0073e6;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #005ba4;
+    }
+  </style>
+</head>
+<body>
+  <!-- Heading -->
+  <h1>Jurney</h1>
+
+  <!-- Start Button -->
+  <button id="record">Start</button>
+
+  <!-- Stop Button -->
+  <button id="stop">Stop</button>
+</body>
+<script src="popup.js"></script>
+</html>

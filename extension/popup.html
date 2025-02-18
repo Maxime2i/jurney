@@ -5,18 +5,27 @@
     <link rel="stylesheet" href="popup.css" type="text/css">
   </head>
   <body>
-    <div class="header"><img src="./icon.png"/> <h1>Jurney</h1></div>
-    <div id="status"></div>
-    <div id="timeRem"></div>
     <div class="buttonContainer">
-      <div class="button" id="start">Start Capture</div>
-      <div class="button" id="finish">Save Capture</div>
-      <div class="button" id="cancel">Cancel Capture</div>
+      <button id="start">D&#233;marrer</button>
+      <button id="stopAllRecordings">Arr&#234;ter</button>
     </div>
-    
-  
-    <button id="stopAllRecordings">Arrêter tous les enregistrements</button>
-    <div id="apiResponse">transcription</div>
-    <button id="sendApiResponse">Envoyer</button>
+    <div class="inputContainer">
+      <div class="inputLabel">
+        <label for="apiResponse" class="labelQuestion">Question</label>
+        <div class="inputButtonContainer">
+          <input id="apiResponse"></input>
+          <button id="sendApiResponse">Envoyer</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="inputContainer">
+      <div class="inputLabel">
+        <label for="response" class="labelQuestion">R&#233;ponse</label>
+        <div class="inputButtonContainer">
+          <div id="response"></div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

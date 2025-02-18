@@ -1,13 +1,9 @@
 {
   "manifest_version": 2,
-  "name": "CultureLabs Recorder",
-  "description": "Record audio from your interviews to get psychometric testing",
+  "name": "Jurney",
+  "description": "Jurney",
   "version": "1.0",
-  "icons": {
-    "128": "icon.png"
-  },
   "browser_action": {
-    "default_icon": "icon.png",
     "default_popup": "popup.html",
     "default_title": "Open Chrome Audio Capture interface"
   },

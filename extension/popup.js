@@ -3,46 +3,11 @@ let timeLeft;
 
 const displayStatus = function() { //function to handle the display of time and buttons
   chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-    const status = document.getElementById("status");
-    const timeRem = document.getElementById("timeRem");
     const startButton = document.getElementById('start');
-    const finishButton = document.getElementById('finish');
-    const cancelButton = document.getElementById('cancel');
-    //CODE TO BLOCK CAPTURE ON YOUTUBE, DO NOT DELETE
-    // if(tabs[0].url.toLowerCase().includes("youtube")) {
-    //   status.innerHTML = "Capture is disabled on this site due to copyright";
-    // } else {
+
+  
       chrome.runtime.sendMessage({currentTab: tabs[0].id}, (response) => {
-        if(response) {
-          chrome.storage.sync.get({
-            maxTime: 1200000,
-            limitRemoved: false
-          }, (options) => {
-            if(options.maxTime > 1200000) {
-              chrome.storage.sync.set({
-                maxTime: 1200000
-              });
-              timeLeft = 1200000 - (Date.now() - response)
-            } else {
-              timeLeft = options.maxTime - (Date.now() - response)
-            }
-            status.innerHTML = "Tab is currently being captured";
-            if(options.limitRemoved) {
-              timeRem.innerHTML = `${parseTime(Date.now() - response)}`;
-              interval = setInterval(() => {
-                timeRem.innerHTML = `${parseTime(Date.now() - response)}`;
-              });
-            } else {
-              timeRem.innerHTML = `${parseTime(timeLeft)} remaining`;
-              interval = setInterval(() => {
-                timeLeft = timeLeft - 1000;
-                timeRem.innerHTML = `${parseTime(timeLeft)} remaining`;
-              }, 1000);
-            }
-          });
-          finishButton.style.display = "block";
-          cancelButton.style.display = "block";
-        } else {
+        if(!response) {
           startButton.style.display = "block";
         }
       });
@@ -72,55 +37,18 @@ chrome.runtime.onMessage.addListener((request, sender) => {
   if (request.type === "apiResponse") {
     console.log(request.data);
     const responseContainer = document.getElementById('apiResponse'); // Assurez-vous d'avoir cet élément dans votre HTML
-    responseContainer.innerText += JSON.stringify(request.data.data.error.message, null, 2); // Ajoute la réponse formatée à la suite
+    responseContainer.value += JSON.stringify(request.data.data.error.message, null, 2); // Écrit la réponse formatée dans l'input
   }
 
 
 
   chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-    const status = document.getElementById("status");
-    const timeRem = document.getElementById("timeRem");
-    const buttons = document.getElementById("buttons");
     const startButton = document.getElementById('start');
-    const finishButton = document.getElementById('finish');
-    const cancelButton = document.getElementById('cancel');
     if(request.captureStarted && request.captureStarted === tabs[0].id) {
-      chrome.storage.sync.get({
-        maxTime: 1200000,
-        limitRemoved: false
-      }, (options) => {
-        if(options.maxTime > 1200000) {
-          chrome.storage.sync.set({
-            maxTime: 1200000
-          });
-          timeLeft = 1200000 - (Date.now() - request.startTime)
-        } else {
-          timeLeft = options.maxTime - (Date.now() - request.startTime)
-        }
-        status.innerHTML = "Tab is currently being captured";
-        if(options.limitRemoved) {
-          timeRem.innerHTML = `${parseTime(Date.now() - request.startTime)}`;
-          interval = setInterval(() => {
-            timeRem.innerHTML = `${parseTime(Date.now() - request.startTime)}`
-          }, 1000);
-        } else {
-          timeRem.innerHTML = `${parseTime(timeLeft)} remaining`;
-          interval = setInterval(() => {
-            timeLeft = timeLeft - 1000;
-            timeRem.innerHTML = `${parseTime(timeLeft)} remaining`;
-          }, 1000);
-        }
-      });
-      finishButton.style.display = "block";
-      cancelButton.style.display = "block";
+     
       startButton.style.display = "none";
     } else if(request.captureStopped && request.captureStopped === tabs[0].id) {
-      status.innerHTML = "";
-      finishButton.style.display = "none";
-      cancelButton.style.display = "none";
       startButton.style.display = "block";
-      timeRem.innerHTML = "";
-      clearInterval(interval);
     }
   });
 });
@@ -129,33 +57,23 @@ chrome.runtime.onMessage.addListener((request, sender) => {
 //initial display for popup menu when opened
 document.addEventListener('DOMContentLoaded', function() {
   displayStatus();
-  const startKey = document.getElementById("startKey");
-  const endKey = document.getElementById("endKey");
   const startButton = document.getElementById('start');
-  const finishButton = document.getElementById('finish');
-  const cancelButton = document.getElementById('cancel');
+
   const stopAllButton = document.getElementById('stopAllRecordings');
   startButton.onclick = () => {chrome.runtime.sendMessage("startCapture")};
-  finishButton.onclick = () => {chrome.runtime.sendMessage("stopCapture")};
-  cancelButton.onclick = () => {chrome.runtime.sendMessage("cancelCapture")};
+
   stopAllButton.onclick = () => {
     chrome.runtime.sendMessage({ command: "stopAllRecordings" });
   };
-  chrome.runtime.getPlatformInfo((info) => {
-    if(info.os === "mac") {
-      startKey.innerHTML = "Command + Shift + U to start capture on current tab";
-      endKey.innerHTML = "Command + Shift + X to stop capture on current tab";
-    } else {
-      startKey.innerHTML = "Ctrl + Shift + S to start capture on current tab";
-      endKey.innerHTML = "Ctrl + Shift + X to stop capture on current tab";
-    }
-  })
-  const options = document.getElementById("options");
-  options.onclick = () => {chrome.runtime.openOptionsPage()};
+ 
+  
 
   // Écouteur pour le bouton d'envoi
   const sendButton = document.getElementById('sendApiResponse');
   sendButton.onclick = () => {
+
+
+
     const responseContainer = document.getElementById('apiResponse');
     const contentToSend = responseContainer.innerText;
 
@@ -171,23 +89,17 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(data => {
       console.log('Réponse de l\'API:', data);
       // Vous pouvez afficher une notification ou un message de succès ici
+      const response = document.getElementById('response'); // Assurez-vous d'avoir cet élément dans votre HTML
+      response.innerText += JSON.stringify(data, null, 2); // Écrit la réponse formatée dans l'input
+    
     })
     .catch(error => {
       console.error('Erreur lors de l\'envoi:', error);
+      const response = document.getElementById('response'); // Assurez-vous d'avoir cet élément dans votre HTML
+      response.innerText += JSON.stringify(error, null, 2);
     });
   };
 
-  // Écouteur pour recevoir la réponse de l'API
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    console.log("request", request);
-    const responseContainer = document.getElementById('apiResponse'); // Assurez-vous d'avoir cet élément dans votre HTML
 
-    responseContainer.innerText = "lallalala"; // Affiche la réponse formatée
-
-    if (request.type === "apiResponse") {
-      console.log(request.data);
-      const responseContainer = document.getElementById('apiResponse'); // Assurez-vous d'avoir cet élément dans votre HTML
-      responseContainer.innerText = JSON.stringify(request.data, null, 2); // Affiche la réponse formatée
-    }
-  });
+  
 });

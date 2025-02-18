@@ -2,7 +2,6 @@ const https = require('https');
 
 const handleIARequest = (req, res) => {
     let body = '';
-    console.log("handleIARequest", req, res);
 
     req.on('data', chunk => {
         body += chunk.toString(); // Convertir le Buffer en chaîne
@@ -12,7 +11,6 @@ const handleIARequest = (req, res) => {
     req.on('end', () => {
         const { input } = JSON.parse(body);
         const data = JSON.stringify({ input });
-        console.log(data);
 
         const options = {
             hostname: 'URL_DE_L_API_D_IA', // Remplacez par l'URL de l'API

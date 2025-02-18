@@ -1,8 +1,8 @@
 const axios = require('axios');
 
 const chatGptRequest = async (input) => {
-    const apiKey = process.env.OPENAI_API_KEY; // Assurez-vous que votre clé API est stockée dans les variables d'environnement
-    console.log("apiKey", apiKey);
+    const apiKey = "test";//process.env.OPENAI_API_KEY; // Assurez-vous que votre clé API est stockée dans les variables d'environnement
+    console.log("apiKey", apiKey, input);
     const url = 'https://api.openai.com/v1/chat/completions';
 
     try {

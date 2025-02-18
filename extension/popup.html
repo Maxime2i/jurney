@@ -1,42 +1,22 @@
-
-<!DOCTYPE html>
 <html>
-<head>
-  <style>
-    /* Inline CSS for styling */
-    body {
-      width: 210px;
-      padding: 20px;
-      text-align: center;
-    }
-
-    h1 {
-      font-size: 20px;
-    }
-
-    button {
-      background-color: #0073e6;
-      color: #fff;
-      border: none;
-      padding: 10px 20px;
-      margin: 10px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #005ba4;
-    }
-  </style>
-</head>
-<body>
-  <!-- Heading -->
-  <h1>Jurney</h1>
-
-  <!-- Start Button -->
-  <button id="record">Start</button>
-
-  <!-- Stop Button -->
-  <button id="stop">Stop</button>
-</body>
-<script src="popup.js"></script>
+  <head>
+    <title>Jurney</title>
+    <script src="popup.js"></script>
+    <link rel="stylesheet" href="popup.css" type="text/css">
+  </head>
+  <body>
+    <div class="header"><img src="./icon.png"/> <h1>Jurney</h1></div>
+    <div id="status"></div>
+    <div id="timeRem"></div>
+    <div class="buttonContainer">
+      <div class="button" id="start">Start Capture</div>
+      <div class="button" id="finish">Save Capture</div>
+      <div class="button" id="cancel">Cancel Capture</div>
+    </div>
+    
+  
+    <button id="stopAllRecordings">Arrêter tous les enregistrements</button>
+    <div id="apiResponse">transcription</div>
+    <button id="sendApiResponse">Envoyer</button>
+  </body>
 </html>

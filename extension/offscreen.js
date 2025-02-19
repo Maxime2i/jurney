@@ -77,17 +77,20 @@ async function startRecording(streamId) {
     recorder = new MediaRecorder(destination.stream, {
       mimeType: "audio/webm",
     });
-    recorder.ondataavailable = (event) => data.push(event.data);
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        data.push(event.data);
+      }
+    };
     recorder.onstop = () => {
       const blob = new Blob(data, { type: "audio/webm" });
-      const url = URL.createObjectURL(blob);
-
-      // Create temporary link element to trigger download
-      const downloadLink = document.createElement("a");
-      downloadLink.href = url;
-      downloadLink.download = `recording-${new Date().toISOString()}.webm`;
-      downloadLink.click();
-
+      // Supprimer le code qui déclenche le téléchargement
+      // const url = URL.createObjectURL(blob);
+      // const downloadLink = document.createElement("a");
+      // downloadLink.href = url;
+      // downloadLink.download = `recording-${new Date().toISOString()}.webm`;
+      // downloadLink.click();
+      
       // Cleanup
       URL.revokeObjectURL(url);
       recorder = undefined;

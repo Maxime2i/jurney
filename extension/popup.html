@@ -17,9 +17,8 @@
         border: none;
         border-radius: 4px;
         width: 100%;
-        opacity: 0; /* Start with 0 opacity */
+        opacity: 1; /* Assurez-vous que l'opacité est 1 */
         transition: opacity 0.3s ease-in-out; /* Smooth transition for opacity */
-        position: absolute; /* Prevent layout shifting */
       }
 
       #startRecord {
@@ -58,6 +57,10 @@
         background-color: #fff3e0;
         color: #ef6c00;
       }
+      #response {
+        border: 1px solid #000;
+        min-height: 100px;
+      }
     </style>
   </head>
   <body>
@@ -67,7 +70,8 @@
       <button id="stopRecord">Stop Recording</button>
     </div>
     <input type="text" id="recordingStatus" />
-    
+    <button id="sendRecording">Send</button>
+    <div id="response"></div>
     <script src="popup.js"></script>
   </body>
 </html>

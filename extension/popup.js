@@ -1,6 +1,11 @@
 // Get button elements
 const startButton = document.getElementById("startRecord");
 const stopButton = document.getElementById("stopRecord");
+const sendButton = document.getElementById("sendRecording");
+const recordingStatus = document.getElementById("recordingStatus");
+const responseDiv = document.getElementById("response");
+
+
 
 let permissionStatus = document.getElementById("permissionStatus");
 
@@ -121,7 +126,6 @@ startButton.addEventListener("click", async () => {
         }
 
         const data = await response.json();
-        const recordingStatus = document.getElementById("recordingStatus");
         recordingStatus.value = data.data.text;
       } catch (error) {
         console.error("Erreur:", error);
@@ -140,6 +144,9 @@ stopButton.addEventListener("click", () => {
       target: "offscreen",
     });
   }, 500);
+
+  responseDiv.textContent = "";
+  recordingStatus.value = "";
 
   stopButton.classList.remove("visible");
   setTimeout(() => {
@@ -172,3 +179,25 @@ async function getAudioBlob() {
   // Cela dépend de la façon dont vous gérez l'enregistrement audio
   return new Blob(); // Remplacez par le blob réel
 }
+
+sendButton.addEventListener("click", async () => {
+
+  try {
+    const response = await fetch("http://localhost:1500/api/chatgpt", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ input: recordingStatus.value }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Erreur lors de l'envoi à l'API ChatGPT");
+    }
+
+    const data = await response.json();
+    responseDiv.textContent = data.response; // Assurez-vous que la réponse est dans le bon format
+  } catch (error) {
+    console.error("Erreur:", error);
+  }
+});

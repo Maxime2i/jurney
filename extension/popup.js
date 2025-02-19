@@ -9,6 +9,7 @@ const responseDiv = document.getElementById("response");
 
 let permissionStatus = document.getElementById("permissionStatus");
 let fullTranscription = ""; // Variable pour stocker la transcription complète
+let automaticSendInterval; // Variable pour stocker l'intervalle d'envoi automatique
 
 function showError(message) {
   permissionStatus.textContent = message;
@@ -129,13 +130,21 @@ startButton.addEventListener("click", async () => {
 
         // Vérifier si la transcription contient un "?"
         if (newTranscription.includes("?")) {
-          // Trouver la dernière occurrence de "." avant le "?"
           const lastPeriodIndex = fullTranscription.lastIndexOf(".");
           const question = fullTranscription.substring(lastPeriodIndex + 1).trim(); // Extraire la question
           recordingStatus.value = question; // Mettre la question dans l'élément recordingStatus
 
           // Réinitialiser la transcription complète après avoir extrait la question
           fullTranscription = ""; 
+
+          // Vérifier si le mode d'envoi est automatique
+          const sendMode = document.querySelector('input[name="sendMode"]:checked').value;
+          if (sendMode === "automatic") {
+            // Simuler un clic sur le bouton "Send" après 3 secondes
+            setTimeout(() => {
+              document.getElementById("sendRecording").click();
+            }, 3000);
+          }
         } else {
           recordingStatus.value = fullTranscription; // Mettre à jour l'élément avec la transcription complète
         }
@@ -212,4 +221,73 @@ sendButton.addEventListener("click", async () => {
   } catch (error) {
     console.error("Erreur:", error);
   }
+});
+
+// Fonction pour envoyer la transcription
+async function sendTranscription() {
+  try {
+    const formData = new FormData();
+    const audioBlob = await getAudioBlob(); // Fonction fictive pour obtenir le blob audio
+    formData.append("file", audioBlob, "recording.wav"); // Assurez-vous que le nom du fichier est correct
+
+    const response = await fetch("http://localhost:1500/api/transcribe", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error("Erreur lors de l'envoi de l'enregistrement");
+    }
+
+    const data = await response.json();
+    const newTranscription = data.data.text; // Nouvelle transcription reçue
+    fullTranscription += newTranscription; // Ajouter à la transcription complète
+
+    // Vérifier si la transcription contient un "?"
+    if (newTranscription.includes("?")) {
+      const lastPeriodIndex = fullTranscription.lastIndexOf(".");
+      const question = fullTranscription.substring(lastPeriodIndex + 1).trim(); // Extraire la question
+      recordingStatus.value = question; // Mettre la question dans l'élément recordingStatus
+
+      // Réinitialiser la transcription complète après avoir extrait la question
+      fullTranscription = ""; 
+
+      // Vérifier si le mode d'envoi est automatique
+      const sendMode = document.querySelector('input[name="sendMode"]:checked').value;
+      if (sendMode === "automatic") {
+        // Simuler un clic sur le bouton "Send" après 3 secondes
+        setTimeout(() => {
+          document.getElementById("sendRecording").click();
+        }, 3000);
+      }
+    } else {
+      recordingStatus.value = fullTranscription; // Mettre à jour l'élément avec la transcription complète
+    }
+  } catch (error) {
+    console.error("Erreur:", error);
+  }
+}
+
+// Gestion de l'envoi automatique
+function startAutomaticSend() {
+  automaticSendInterval = setInterval(sendTranscription, 5000); // Envoi toutes les 5 secondes
+}
+
+// Gestion de l'envoi manuel
+document.getElementById("sendRecording").addEventListener("click", () => {
+  const sendMode = document.querySelector('input[name="sendMode"]:checked').value;
+  if (sendMode === "manual") {
+    sendTranscription(); // Appel de la fonction d'envoi
+  }
+});
+
+// Démarrer l'envoi automatique si sélectionné
+document.querySelectorAll('input[name="sendMode"]').forEach((radio) => {
+  radio.addEventListener("change", (event) => {
+    if (event.target.value === "automatic") {
+      startAutomaticSend(); // Démarrer l'envoi automatique
+    } else {
+      clearInterval(automaticSendInterval); // Arrêter l'envoi automatique
+    }
+  });
 });

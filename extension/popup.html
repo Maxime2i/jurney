@@ -70,6 +70,17 @@
       <button id="stopRecord">Stop Recording</button>
     </div>
     <input type="text" id="recordingStatus" />
+    
+    <!-- Ajout des boutons radio -->
+    <div>
+      <label>
+        <input type="radio" name="sendMode" value="manual" checked> Envoi Manuel
+      </label>
+      <label>
+        <input type="radio" name="sendMode" value="automatic"> Envoi Automatique
+      </label>
+    </div>
+    
     <button id="sendRecording">Send</button>
     <div id="response"></div>
     <script src="popup.js"></script>

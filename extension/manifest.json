@@ -1,39 +1,21 @@
 {
-  "manifest_version": 2,
-  "name": "Jurney",
+  "name": "jurney",
   "description": "Jurney",
   "version": "1.0",
-  "browser_action": {
-    "default_popup": "popup.html",
-    "default_title": "Open Chrome Audio Capture interface"
+  "manifest_version": 3,
+  "minimum_chrome_version": "116",
+  "action": {
+    "default_popup": "popup.html"
   },
-  "options_page": "options.html",
   "background": {
-    "scripts": [
-      "background.js",
-      "worker.js"
-    ],
-    "persistent": true
+    "service_worker": "service-worker.js"
   },
-  "permissions": [
-    "tabCapture",
-    "downloads",
-    "storage"
-  ],
-  "commands": {
-    "start": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+U"
-      },
-      "description": "Start Capture"
-    },
-    "stop": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+X",
-        "mac": "MacCtrl+Shift+X"
-      },
-      "description": "Stop Capture"
+  "permissions": ["tabCapture", "offscreen", "activeTab"],
+  "host_permissions": ["*://*/*"],
+  "web_accessible_resources": [
+    {
+      "resources": ["permission.html", "offscreen.html"],
+      "matches": ["<all_urls>"]
     }
-  }
+  ]
 }

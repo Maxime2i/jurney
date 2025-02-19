@@ -20,7 +20,7 @@ const handleTranscribeRequest = async (req, res) => {
             }
 
             const audioBase64 = data.toString('base64'); // Convertir en Base64
-            const apiKey = process.env.OPENAI_API_KEY;
+            const apiKey = "test";//process.env.OPENAI_API_KEY;
 
             // Convertir le Base64 en Blob et envoyer à l'API
             const blob = Buffer.from(audioBase64, 'base64');
@@ -53,6 +53,11 @@ const handleTranscribeRequest = async (req, res) => {
             });
 
             stream.end(blob); // Fin de l'écriture du fichier sur Firebase
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Fichier audio traité avec succès.',  data: {
+                "text": "Bonjour, on va donc commencer cet entretien. Est-ce que vous pourriez vous présenter, s'il vous plaît ? D'accord, je comprends qui vous êtes. Est-ce que vous pourriez me citer vos trois qualités ? Comment vous vous appelez ?"
+            } }));
 
             fetch("https://api.openai.com/v1/audio/transcriptions", {
                 method: "POST",

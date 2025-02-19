@@ -1,105 +1,174 @@
-let interval;
-let timeLeft;
+// Get button elements
+const startButton = document.getElementById("startRecord");
+const stopButton = document.getElementById("stopRecord");
 
-const displayStatus = function() { //function to handle the display of time and buttons
-  chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-    const startButton = document.getElementById('start');
+let permissionStatus = document.getElementById("permissionStatus");
 
-  
-      chrome.runtime.sendMessage({currentTab: tabs[0].id}, (response) => {
-        if(!response) {
-          startButton.style.display = "block";
-        }
-      });
-    // }
-  });
+function showError(message) {
+  permissionStatus.textContent = message;
+  permissionStatus.style.display = "block";
 }
 
-const parseTime = function(time) { //function to display time remaining or time elapsed
-  let minutes = Math.floor((time/1000)/60);
-  let seconds = Math.floor((time/1000) % 60);
-  if (minutes < 10 && minutes >= 0) {
-    minutes = '0' + minutes;
-  } else if (minutes < 0) {
-    minutes = '00';
-  }
-  if (seconds < 10 && seconds >= 0) {
-    seconds = '0' + seconds;
-  } else if (seconds < 0) {
-    seconds = '00';
-  }
-  return `${minutes}:${seconds}`
+function hideError() {
+  permissionStatus.style.display = "none";
 }
 
-//manipulation of the displayed buttons upon message from background
-chrome.runtime.onMessage.addListener((request, sender) => {
+async function checkMicrophonePermission() {
+  try {
+    await navigator.mediaDevices.getUserMedia({ audio: true });
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
 
-  if (request.type === "apiResponse") {
-    console.log(request.data);
-    const responseContainer = document.getElementById('apiResponse'); // Assurez-vous d'avoir cet élément dans votre HTML
-    responseContainer.value += JSON.stringify(request.data.data.error.message, null, 2); // Écrit la réponse formatée dans l'input
+// Check recording state when popup opens
+async function checkRecordingState() {
+  const hasPermission = await checkMicrophonePermission();
+  if (!hasPermission) {
+    chrome.tabs.create({ url: "permission.html" });
+    return;
   }
 
+  const contexts = await chrome.runtime.getContexts({});
+  const offscreenDocument = contexts.find(
+    (c) => c.contextType === "OFFSCREEN_DOCUMENT"
+  );
 
+  if (
+    offscreenDocument &&
+    offscreenDocument.documentUrl.endsWith("#recording")
+  ) {
+    stopButton.style.display = "block";
+    setTimeout(() => stopButton.classList.add("visible"), 10);
+  } else {
+    startButton.style.display = "block";
+    setTimeout(() => startButton.classList.add("visible"), 10);
+  }
+}
 
-  chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-    const startButton = document.getElementById('start');
-    if(request.captureStarted && request.captureStarted === tabs[0].id) {
-     
-      startButton.style.display = "none";
-    } else if(request.captureStopped && request.captureStopped === tabs[0].id) {
-      startButton.style.display = "block";
-    }
-  });
-});
+// Call checkRecordingState when popup opens
+document.addEventListener("DOMContentLoaded", checkRecordingState);
 
-
-//initial display for popup menu when opened
-document.addEventListener('DOMContentLoaded', function() {
-  displayStatus();
-  const startButton = document.getElementById('start');
-
-  const stopAllButton = document.getElementById('stopAllRecordings');
-  startButton.onclick = () => {chrome.runtime.sendMessage("startCapture")};
-
-  stopAllButton.onclick = () => {
-    chrome.runtime.sendMessage({ command: "stopAllRecordings" });
-  };
- 
-  
-
-  // Écouteur pour le bouton d'envoi
-  const sendButton = document.getElementById('sendApiResponse');
-  sendButton.onclick = () => {
-
-
-
-    const responseContainer = document.getElementById('apiResponse');
-    const contentToSend = responseContainer.innerText;
-
-    // Envoyer le contenu à l'API
-    fetch('http://localhost:1500/api/chatgpt', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ message: contentToSend })
-    })
-    .then(response => response.json())
-    .then(data => {
-      console.log('Réponse de l\'API:', data);
-      // Vous pouvez afficher une notification ou un message de succès ici
-      const response = document.getElementById('response'); // Assurez-vous d'avoir cet élément dans votre HTML
-      response.innerText += JSON.stringify(data, null, 2); // Écrit la réponse formatée dans l'input
-    
-    })
-    .catch(error => {
-      console.error('Erreur lors de l\'envoi:', error);
-      const response = document.getElementById('response'); // Assurez-vous d'avoir cet élément dans votre HTML
-      response.innerText += JSON.stringify(error, null, 2);
+// Add button click listeners
+startButton.addEventListener("click", async () => {
+  try {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
     });
-  };
 
+    if (
+      !tab ||
+      tab.url.startsWith("chrome://") ||
+      tab.url.startsWith("chrome-extension://")
+    ) {
+      alert(
+        "Cannot record Chrome system pages. Please try on a regular webpage."
+      );
+      return;
+    }
 
-  
+    // Create offscreen document if not exists
+    const contexts = await chrome.runtime.getContexts({});
+    const offscreenDocument = contexts.find(
+      (c) => c.contextType === "OFFSCREEN_DOCUMENT"
+    );
+
+    if (!offscreenDocument) {
+      await chrome.offscreen.createDocument({
+        url: "offscreen.html",
+        reasons: ["USER_MEDIA"],
+        justification: "Recording from chrome.tabCapture API",
+      });
+    }
+
+    // Get stream ID and start recording
+    const streamId = await chrome.tabCapture.getMediaStreamId({
+      targetTabId: tab.id,
+    });
+
+    chrome.runtime.sendMessage({
+      type: "start-recording",
+      target: "offscreen",
+      data: streamId,
+    });
+
+    startButton.classList.remove("visible");
+    setTimeout(() => {
+      startButton.style.display = "none";
+      stopButton.style.display = "block";
+      setTimeout(() => stopButton.classList.add("visible"), 10);
+    }, 300);
+
+    // Envoi de l'enregistrement toutes les 5 secondes
+    setInterval(async () => {
+      try {
+        
+        const formData = new FormData();
+        // Ajoutez ici l'enregistrement au FormData
+        // Remplacez 'audioBlob' par la variable contenant votre enregistrement
+        const audioBlob = await getAudioBlob(); // Fonction fictive pour obtenir le blob audio
+        formData.append("file", audioBlob, "recording.wav"); // Assurez-vous que le nom du fichier est correct
+
+        const response = await fetch("http://localhost:1500/api/transcribe", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Erreur lors de l'envoi de l'enregistrement");
+        }
+
+        const data = await response.json();
+        const recordingStatus = document.getElementById("recordingStatus");
+        recordingStatus.value = data.data.text;
+      } catch (error) {
+        console.error("Erreur:", error);
+      }
+    }, 5000); // 5000 ms = 5 secondes
+
+  } catch (error) {
+    alert("Failed to start recording: " + error.message);
+  }
 });
+
+stopButton.addEventListener("click", () => {
+  setTimeout(() => {
+    chrome.runtime.sendMessage({
+      type: "stop-recording",
+      target: "offscreen",
+    });
+  }, 500);
+
+  stopButton.classList.remove("visible");
+  setTimeout(() => {
+    stopButton.style.display = "none";
+    startButton.style.display = "block";
+    setTimeout(() => startButton.classList.add("visible"), 10);
+  }, 300);
+});
+
+// Listen for messages from offscreen document and service worker
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.target === "popup") {
+    switch (message.type) {
+      case "recording-error":
+        alert(message.error);
+        startButton.style.display = "block";
+        stopButton.style.display = "none";
+        break;
+      case "recording-stopped":
+        startButton.style.display = "block";
+        stopButton.style.display = "none";
+        break;
+    }
+  }
+});
+
+// Fonction fictive pour obtenir le blob audio
+async function getAudioBlob() {
+  // Implémentez la logique pour récupérer le blob audio de l'enregistrement
+  // Cela dépend de la façon dont vous gérez l'enregistrement audio
+  return new Blob(); // Remplacez par le blob réel
+}

@@ -1,7 +1,7 @@
 const { chatGptRequest } = require('../controllers/chatGptController');
 
 const chatGptRoute = async (req, res) => {
-    console.log("chatGptRoute");
+    console.log("chatGptRoute", req.method, req.url);
     if (req.method === 'POST' && req.url === '/api/chatgpt') {
         let body = '';
 
@@ -10,6 +10,7 @@ const chatGptRoute = async (req, res) => {
         });
 
         req.on('end', async () => {
+            console.log("body", body);
             const { input } = JSON.parse(body);
             console.log("input", input);
             try {

@@ -8,6 +8,7 @@ const responseDiv = document.getElementById("response");
 
 
 let permissionStatus = document.getElementById("permissionStatus");
+let fullTranscription = ""; // Variable pour stocker la transcription complète
 
 function showError(message) {
   permissionStatus.textContent = message;
@@ -109,10 +110,7 @@ startButton.addEventListener("click", async () => {
     // Envoi de l'enregistrement toutes les 5 secondes
     setInterval(async () => {
       try {
-        
         const formData = new FormData();
-        // Ajoutez ici l'enregistrement au FormData
-        // Remplacez 'audioBlob' par la variable contenant votre enregistrement
         const audioBlob = await getAudioBlob(); // Fonction fictive pour obtenir le blob audio
         formData.append("file", audioBlob, "recording.wav"); // Assurez-vous que le nom du fichier est correct
 
@@ -126,7 +124,21 @@ startButton.addEventListener("click", async () => {
         }
 
         const data = await response.json();
-        recordingStatus.value = data.data.text;
+        const newTranscription = data.data.text; // Nouvelle transcription reçue
+        fullTranscription += newTranscription; // Ajouter à la transcription complète
+
+        // Vérifier si la transcription contient un "?"
+        if (newTranscription.includes("?")) {
+          // Trouver la dernière occurrence de "." avant le "?"
+          const lastPeriodIndex = fullTranscription.lastIndexOf(".");
+          const question = fullTranscription.substring(lastPeriodIndex + 1).trim(); // Extraire la question
+          recordingStatus.value = question; // Mettre la question dans l'élément recordingStatus
+
+          // Réinitialiser la transcription complète après avoir extrait la question
+          fullTranscription = ""; 
+        } else {
+          recordingStatus.value = fullTranscription; // Mettre à jour l'élément avec la transcription complète
+        }
       } catch (error) {
         console.error("Erreur:", error);
       }

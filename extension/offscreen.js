@@ -11,6 +11,8 @@ chrome.runtime.onMessage.addListener(async (message) => {
       case "stop-recording":
         stopRecording();
         break;
+
+ 
       default:
         throw new Error("Unrecognized message:", message.type);
     }
@@ -77,17 +79,39 @@ async function startRecording(streamId) {
     recorder = new MediaRecorder(destination.stream, {
       mimeType: "audio/webm",
     });
-    recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        data.push(event.data);
-      }
-    };
-    recorder.onstop = () => {
+    recorder.ondataavailable = (event) => data.push(event.data);
+    recorder.onstop = async () => {
       const blob = new Blob(data, { type: "audio/webm" });
+      const url = URL.createObjectURL(blob);
 
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = `new-${new Date().toISOString()}.webm`;
+      downloadLink.click();
 
-      clearInterval(automaticSendInterval);
-      
+      // Envoi de l'audio à l'API de transcription
+      const formData = new FormData();
+      formData.append('audio', blob, `recording-${new Date().toISOString()}.webm`);
+
+      try {
+        const response = await fetch('http://localhost:1500/api/transcribe', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Erreur lors de l\'envoi de l\'audio à l\'API');
+        }
+
+        chrome.runtime.sendMessage({
+          type: "transcribe",
+          target: "popup",
+          data: response.data.text,
+        });
+      } catch (error) {
+        console.error("Erreur lors de l'envoi de l'audio:", error);
+      }
+
       // Cleanup
       URL.revokeObjectURL(url);
       recorder = undefined;
@@ -120,7 +144,7 @@ async function stopRecording() {
   await stopAllStreams();
   window.location.hash = "";
 
-  console.log("stopRecording");
+
 }
 
 async function stopAllStreams() {
@@ -133,3 +157,5 @@ async function stopAllStreams() {
   activeStreams = [];
   await new Promise((resolve) => setTimeout(resolve, 100));
 }
+
+

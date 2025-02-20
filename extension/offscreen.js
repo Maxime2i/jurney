@@ -84,12 +84,9 @@ async function startRecording(streamId) {
     };
     recorder.onstop = () => {
       const blob = new Blob(data, { type: "audio/webm" });
-      // Supprimer le code qui déclenche le téléchargement
-      // const url = URL.createObjectURL(blob);
-      // const downloadLink = document.createElement("a");
-      // downloadLink.href = url;
-      // downloadLink.download = `recording-${new Date().toISOString()}.webm`;
-      // downloadLink.click();
+
+
+      clearInterval(automaticSendInterval);
       
       // Cleanup
       URL.revokeObjectURL(url);
@@ -123,7 +120,7 @@ async function stopRecording() {
   await stopAllStreams();
   window.location.hash = "";
 
-
+  console.log("stopRecording");
 }
 
 async function stopAllStreams() {

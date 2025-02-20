@@ -71,7 +71,7 @@ startButton.addEventListener("click", async () => {
       tab.url.startsWith("chrome-extension://")
     ) {
       alert(
-        "Cannot record Chrome system pages. Please try on a regular webpage."
+        "Impossible d'enregistrer les pages système de Chrome. Veuillez essayer sur une page web régulière."
       );
       return;
     }
@@ -110,6 +110,9 @@ startButton.addEventListener("click", async () => {
 
     // Envoi de l'enregistrement toutes les 5 secondes
     setInterval(async () => {
+      if (startButton.style.display === "block") {
+        return;
+      }
       try {
         const formData = new FormData();
         const audioBlob = await getAudioBlob(); // Fonction fictive pour obtenir le blob audio
@@ -127,6 +130,8 @@ startButton.addEventListener("click", async () => {
         const data = await response.json();
         const newTranscription = data.data.text; // Nouvelle transcription reçue
         fullTranscription += newTranscription; // Ajouter à la transcription complète
+
+        responseDiv.textContent = data.data.text;
 
         // Vérifier si la transcription contient un "?"
         if (newTranscription.includes("?")) {
@@ -159,6 +164,12 @@ startButton.addEventListener("click", async () => {
 });
 
 stopButton.addEventListener("click", () => {
+  // Arrêter l'envoi automatique si en cours
+  if (automaticSendInterval) {
+    clearInterval(automaticSendInterval);
+    automaticSendInterval = null; // Réinitialiser pour éviter des appels futurs
+  }
+
   setTimeout(() => {
     chrome.runtime.sendMessage({
       type: "stop-recording",

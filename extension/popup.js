@@ -6,8 +6,16 @@ const recordingStatus = document.getElementById("recordingStatus");
 const sendButton = document.getElementById("sendRecording");
 
 let transcriptions = []; // Stocker les transcriptions
+let recordingTimeout; // Déclarez une variable pour stocker l'identifiant du timeout
 
+// Ajoutez cette fonction pour sauvegarder l'état de l'enregistrement
+function saveRecordingState(isRecording) {
+  localStorage.setItem('isRecording', isRecording);
+}
+
+// Modifiez l'écouteur d'événements pour le bouton de démarrage
 startButton.addEventListener("click", async () => {
+  saveRecordingState(true); // Enregistrer l'état comme enregistrement en cours
   startButton.style.display = "none";
   stopButton.style.display = "block";
 
@@ -41,18 +49,33 @@ startButton.addEventListener("click", async () => {
     data: streamId,
   });
 
-  setTimeout(() => {
+  recordingTimeout = setTimeout(() => {
     chrome.runtime.sendMessage({ target: "offscreen", type: "stop-recording" });
     startButton.click();
   }, 5000);
 });
 
+// Modifiez l'écouteur d'événements pour le bouton d'arrêt
 stopButton.addEventListener("click", () => {
+  saveRecordingState(false); // Enregistrer l'état comme pas d'enregistrement
   console.log("Bouton Arrêter cliqué");
   stopButton.style.display = "none";
   startButton.style.display = "block";
 
+  clearTimeout(recordingTimeout); // Annulez le timeout
   chrome.runtime.sendMessage({ target: "offscreen", type: "stop-recording" });
+});
+
+// Lors du chargement du popup, vérifiez l'état de l'enregistrement
+document.addEventListener("DOMContentLoaded", () => {
+  const isRecording = localStorage.getItem('isRecording') === 'true';
+  if (isRecording) {
+    startButton.style.display = "none";
+    stopButton.style.display = "block";
+  } else {
+    startButton.style.display = "block";
+    stopButton.style.display = "none";
+  }
 });
 
 chrome.runtime.onMessage.addListener((message) => {

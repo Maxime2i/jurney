@@ -17,8 +17,8 @@
         border: none;
         border-radius: 4px;
         width: 100%;
-        opacity: 1; /* Assurez-vous que l'opacité est 1 */
-        transition: opacity 0.3s ease-in-out; /* Smooth transition for opacity */
+        opacity: 1; 
+        transition: opacity 0.3s ease-in-out; 
       }
 
       #startRecord {
@@ -32,15 +32,13 @@
         display: none;
       }
 
-      /* New class for visible buttons */
       button.visible {
         opacity: 1;
       }
 
-      /* Add a container for the buttons to maintain layout */
       .button-container {
         position: relative;
-        height: 38px; /* Height of your buttons */
+        height: 38px; 
         margin: 10px 0;
       }
 
@@ -66,16 +64,14 @@
         font-size: 18px;
       }
 
-      /* Ajoutez cette classe pour le bouton noir */
       #sendRecording {
-        background: black; /* Couleur de fond noire */
-        color: white; /* Couleur du texte blanche */
+        background: black; 
+        color: white; 
       }
     </style>
   </head>
   <body>
     <div id="permissionStatus"></div>
-    <!-- Ajout des boutons radio -->
     <div>
       <label>
         <input type="radio" name="sendMode" value="manual" checked> Envoi Manuel

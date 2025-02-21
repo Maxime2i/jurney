@@ -1,14 +1,14 @@
 const axios = require('axios');
 
 const chatGptRequest = async (input) => {
-    const apiKey = process.env.OPENAI_API_KEY; // Assurez-vous que votre clé API est stockée dans les variables d'environnement
+    const apiKey = process.env.OPENAI_API_KEY; 
     const url = 'https://api.openai.com/v1/chat/completions';
 
 
 
     try {
         const response = await axios.post(url, {
-            model: 'gpt-3.5-turbo', // ou le modèle que vous souhaitez utiliser
+            model: 'gpt-3.5-turbo',
             messages: [{ role: 'user', content: input }],
         }, {
             headers: {
@@ -17,7 +17,7 @@ const chatGptRequest = async (input) => {
             },
         });
 
-        return response.data.choices[0].message.content; // Retourne la réponse de l'IA
+        return response.data.choices[0].message.content; 
     } catch (error) {
         console.error('Erreur lors de l\'appel à l\'API ChatGPT:', error);
         throw error;

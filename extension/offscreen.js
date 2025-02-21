@@ -27,9 +27,8 @@ async function initializeAudio() {
 async function getAudioStreams(streamId) {
   await initializeAudio();
 
-  // Vérifiez si les flux sont déjà actifs
   if (activeStreams.length > 0) {
-    return activeStreams; // Retournez les flux existants
+    return activeStreams; 
   }
 
   const tabStream = await navigator.mediaDevices.getUserMedia({
@@ -51,7 +50,7 @@ async function getAudioStreams(streamId) {
     video: false,
   });
 
-  activeStreams.push(tabStream, micStream); // Stockez les flux actifs
+  activeStreams.push(tabStream, micStream); 
   return { tabStream, micStream };
 }
 
@@ -63,8 +62,8 @@ async function setupAudioConnections(tabStream, micStream) {
   const tabGain = audioContext.createGain();
   const micGain = audioContext.createGain();
 
-  tabGain.gain.value = 1.0; // Normal tab volume
-  micGain.gain.value = 1.5; // Slightly boosted mic volume
+  tabGain.gain.value = 1.0; 
+  micGain.gain.value = 1.5;
 
   tabSource.connect(tabGain);
   tabGain.connect(audioContext.destination);
@@ -80,13 +79,10 @@ async function startRecording(streamId) {
     throw new Error("Called startRecording while recording is in progress.");
   }
 
-  //await stopAllStreams();
-
   try {
     const { tabStream, micStream } = await getAudioStreams(streamId);
     const destination = await setupAudioConnections(tabStream, micStream);
 
-    // Start recording
     recorder = new MediaRecorder(destination.stream, {
       mimeType: "audio/webm",
     });
@@ -95,12 +91,11 @@ async function startRecording(streamId) {
       const blob = new Blob(data, { type: "audio/webm" });
       const url = URL.createObjectURL(blob);
 
-      // Envoi de l'audio à l'API de transcription
       const formData = new FormData();
       formData.append('audio', blob, `recording-${new Date().toISOString()}.webm`);
 
       try {
-        const response = await fetch('http://localhost:1500/api/transcribe', {
+        const response = await fetch('https://jurney-bice.vercel.app/api/transcribe', {
           method: 'POST',
           body: formData,
         });
@@ -120,7 +115,6 @@ async function startRecording(streamId) {
         console.error("Erreur lors de l'envoi de l'audio:", error);
       }
 
-      // Cleanup
       URL.revokeObjectURL(url);
       recorder = undefined;
       data = [];

@@ -8,7 +8,6 @@ chrome.runtime.onMessage.addListener(async (message) => {
             currentWindow: true,
           });
 
-          // Check if we can record this tab
           if (
             !tab ||
             tab.url.startsWith("chrome://") ||
@@ -23,15 +22,12 @@ chrome.runtime.onMessage.addListener(async (message) => {
             return;
           }
 
-          // Ensure we have access to the tab
           await chrome.tabs.update(tab.id, {});
 
-          // Get a MediaStream for the active tab
           const streamId = await chrome.tabCapture.getMediaStreamId({
             targetTabId: tab.id,
           });
 
-          // Send the stream ID to the offscreen document to start recording
           chrome.runtime.sendMessage({
             type: "start-recording",
             target: "offscreen",

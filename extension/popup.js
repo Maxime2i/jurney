@@ -1,21 +1,18 @@
-// Get button elements
 const startButton = document.getElementById("startRecord");
 const stopButton = document.getElementById("stopRecord");
 const responseDiv = document.getElementById("response");
 const recordingStatus = document.getElementById("recordingStatus");
 const sendButton = document.getElementById("sendRecording");
 
-let transcriptions = ""; // Changer pour une chaîne de caractères
-let recordingTimeout; // Déclarez une variable pour stocker l'identifiant du timeout
+let transcriptions = ""; 
+let recordingTimeout;
 
-// Ajoutez cette fonction pour sauvegarder l'état de l'enregistrement
 function saveRecordingState(isRecording) {
   localStorage.setItem('isRecording', isRecording);
 }
 
-// Modifiez l'écouteur d'événements pour le bouton de démarrage
 startButton.addEventListener("click", async () => {
-  saveRecordingState(true); // Enregistrer l'état comme enregistrement en cours
+  saveRecordingState(true); 
   startButton.style.display = "none";
   stopButton.style.display = "block";
 
@@ -24,7 +21,6 @@ startButton.addEventListener("click", async () => {
     currentWindow: true,
   });
 
-  // Create offscreen document if not exists
   const contexts = await chrome.runtime.getContexts({});
   const offscreenDocument = contexts.find(
     (c) => c.contextType === "OFFSCREEN_DOCUMENT"
@@ -38,7 +34,6 @@ startButton.addEventListener("click", async () => {
     });
   }
 
-  // Get stream ID and start recording
   const streamId = await chrome.tabCapture.getMediaStreamId({
     targetTabId: tab.id,
   });
@@ -55,18 +50,16 @@ startButton.addEventListener("click", async () => {
   }, 5000);
 });
 
-// Modifiez l'écouteur d'événements pour le bouton d'arrêt
 stopButton.addEventListener("click", () => {
-  saveRecordingState(false); // Enregistrer l'état comme pas d'enregistrement
+  saveRecordingState(false); 
   console.log("Bouton Arrêter cliqué");
   stopButton.style.display = "none";
   startButton.style.display = "block";
 
-  clearTimeout(recordingTimeout); // Annulez le timeout
+  clearTimeout(recordingTimeout); 
   chrome.runtime.sendMessage({ target: "offscreen", type: "stop-recording" });
 });
 
-// Lors du chargement du popup, vérifiez l'état de l'enregistrement
 document.addEventListener("DOMContentLoaded", () => {
   const isRecording = localStorage.getItem('isRecording') === 'true';
   if (isRecording) {
@@ -111,28 +104,24 @@ chrome.runtime.onMessage.addListener((message) => {
   }
 });
 
-// Ajoutez cet écouteur d'événements pour surveiller les changements dans l'input
 function autoResizeTextarea() {
-  this.style.height = 'auto'; // Réinitialiser la hauteur
-  this.style.height = (this.scrollHeight) + 'px'; // Ajuster à la hauteur du contenu
+  this.style.height = 'auto';
+  this.style.height = (this.scrollHeight) + 'px'; 
 }
 
 recordingStatus.addEventListener('input', autoResizeTextarea);
 
-// Initialisez l'état du bouton au chargement
-sendButton.disabled = !recordingStatus.value.trim(); // Désactive le bouton si l'input est vide
+sendButton.disabled = !recordingStatus.value.trim(); 
 
-// Ajoutez cet écouteur d'événements pour surveiller les changements dans l'input
 recordingStatus.addEventListener('input', () => {
-  // Activez ou désactivez le bouton en fonction du contenu de l'input
   sendButton.disabled = !recordingStatus.value.trim();
-  autoResizeTextarea.call(recordingStatus); // Ajustez la taille du textarea
+  autoResizeTextarea.call(recordingStatus); 
 });
 
 sendButton.addEventListener("click", () => {
   const question = recordingStatus.value;
 
-  fetch(`http://localhost:1500/api/chatgpt`, {
+  fetch(`https://jurney-bice.vercel.app/api/chatgpt`, {
     method: "POST",
     body: JSON.stringify({ input: question }),
   })

@@ -3,11 +3,10 @@ const { bucket } = require('../firebase');
 const axios = require('axios');
 const FormData = require('form-data');
 
-// Configuration de multer pour le stockage en mémoire
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-const OPENAI_API_KEY = 'YOUR_OPENAI_API_KEY'; // Remplace par ta clé API
+const OPENAI_API_KEY = 'YOUR_OPENAI_API_KEY'; 
 
 const handleTranscribeRequest = async (req, res) => {
     try {
@@ -18,27 +17,24 @@ const handleTranscribeRequest = async (req, res) => {
             return;
         }
 
-        // 📌 1. Uploader le fichier sur Firebase Storage
         const filePath = `transcriptions/${file.originalname}`;
         const fileUpload = bucket.file(filePath);
         const stream = fileUpload.createWriteStream({
             metadata: { contentType: file.mimetype },
         });
 
-        stream.end(file.buffer); // Upload le buffer sur Firebase Storage
+        stream.end(file.buffer); 
 
         stream.on('finish', async () => {
 
 
 
             try {
-                // 📌 2. Obtenir une URL signée pour récupérer le fichier
                 const [url] = await fileUpload.getSignedUrl({
                     action: 'read',
-                    expires: Date.now() + 15 * 60 * 1000, // Expire dans 15 minutes
+                    expires: Date.now() + 15 * 60 * 1000, 
                 });
 
-                // 📌 3. Télécharger et streamer directement le fichier vers Whisper
                 const response = await axios({
                     method: 'get',
                     url,
@@ -48,7 +44,7 @@ const handleTranscribeRequest = async (req, res) => {
                 const formData = new FormData();
                 formData.append('file', response.data, { filename: file.originalname, contentType: file.mimetype });
                 formData.append('model', 'whisper-1');
-                formData.append('language', 'fr'); // Optionnel
+                formData.append('language', 'fr');
 
                 const whisperResponse = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
                     headers: {
@@ -58,6 +54,11 @@ const handleTranscribeRequest = async (req, res) => {
                 });
 
                 console.log(whisperResponse.data);
+                if (whisperResponse.data.text === "Sous-titres réalisés para la communauté d'Amara.org") {
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end();
+                    return;
+                }
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ data: whisperResponse.data }));
 

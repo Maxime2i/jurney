@@ -1,10 +1,12 @@
 const admin = require("firebase-admin");
 const serviceAccount = require("./firebase.json");
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: "gs://messaging-app-4b1cc.appspot.com" // Remplacez par votre nom de bucket
-});
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    storageBucket: "gs://messaging-app-4b1cc.appspot.com" 
+  });
+}
 
 const bucket = admin.storage().bucket();
 

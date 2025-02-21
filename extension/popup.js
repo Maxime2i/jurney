@@ -5,7 +5,7 @@ const responseDiv = document.getElementById("response");
 const recordingStatus = document.getElementById("recordingStatus");
 const sendButton = document.getElementById("sendRecording");
 
-let transcriptions = []; // Stocker les transcriptions
+let transcriptions = ""; // Changer pour une chaîne de caractères
 let recordingTimeout; // Déclarez une variable pour stocker l'identifiant du timeout
 
 // Ajoutez cette fonction pour sauvegarder l'état de l'enregistrement
@@ -91,30 +91,43 @@ chrome.runtime.onMessage.addListener((message) => {
         stopButton.style.display = "none";
         break;
       case "transcribe":
-        transcriptions.push(message.data); // Ajouter la transcription à la liste
-        if (message.data.endsWith("?")) { // Vérifier si c'est une question
-          const lastPeriodIndex = message.data.lastIndexOf('.');
-          const question = lastPeriodIndex !== -1 ? message.data.substring(lastPeriodIndex + 1).trim() : message.data.trim();
-          recordingStatus.value = question; // Afficher uniquement la question
+        // transcriptions += message.data.text + " "; // Ajouter la transcription à la chaîne
+        // responseDiv.textContent = transcriptions; // Afficher la chaîne de transcriptions
+        // if (message.data.text.includes("?")) { // Vérifier si c'est une question
+        //   const lastPeriodIndex = transcriptions.lastIndexOf('.'); // Trouver le dernier point dans la chaîne
+        //   const question = lastPeriodIndex !== -1 ? transcriptions.substring(lastPeriodIndex + 1).trim() : transcriptions.trim();
+        //   recordingStatus.value = question; // Afficher uniquement la question
           
-          // Déclencher l'événement input manuellement
-          recordingStatus.dispatchEvent(new Event('input'));
+        //   // Déclencher l'événement input manuellement
+        //   recordingStatus.dispatchEvent(new Event('input'));
 
-          // Vider la liste des transcriptions
-          transcriptions = [];
-        }
+        //   // Réinitialiser la chaîne de transcriptions
+        //   transcriptions = "";
+        // }
+        recordingStatus.value += message.data.text + " ";
+        recordingStatus.dispatchEvent(new Event('input'));
         break;
     }
   }
 });
 
 // Ajoutez cet écouteur d'événements pour surveiller les changements dans l'input
-recordingStatus.addEventListener("input", () => {
-  sendButton.disabled = !recordingStatus.value.trim(); // Désactive le bouton si l'input est vide
-});
+function autoResizeTextarea() {
+  this.style.height = 'auto'; // Réinitialiser la hauteur
+  this.style.height = (this.scrollHeight) + 'px'; // Ajuster à la hauteur du contenu
+}
+
+recordingStatus.addEventListener('input', autoResizeTextarea);
 
 // Initialisez l'état du bouton au chargement
 sendButton.disabled = !recordingStatus.value.trim(); // Désactive le bouton si l'input est vide
+
+// Ajoutez cet écouteur d'événements pour surveiller les changements dans l'input
+recordingStatus.addEventListener('input', () => {
+  // Activez ou désactivez le bouton en fonction du contenu de l'input
+  sendButton.disabled = !recordingStatus.value.trim();
+  autoResizeTextarea.call(recordingStatus); // Ajustez la taille du textarea
+});
 
 sendButton.addEventListener("click", () => {
   const question = recordingStatus.value;

@@ -6,7 +6,6 @@ const chatGptRequest = async (input) => {
 
 
 
-return "ceci est la reponde de gpt"; // Retourne la réponse de l'IA
     try {
         const response = await axios.post(url, {
             model: 'gpt-3.5-turbo', // ou le modèle que vous souhaitez utiliser

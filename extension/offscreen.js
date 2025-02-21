@@ -1,79 +1,90 @@
 let recorder;
 let data = [];
 let activeStreams = [];
+let audioContext;
 
 chrome.runtime.onMessage.addListener(async (message) => {
   if (message.target === "offscreen") {
     switch (message.type) {
       case "start-recording":
-        startRecording(message.data);
+        await startRecording(message.data);
         break;
       case "stop-recording":
         stopRecording();
         break;
-
- 
       default:
         throw new Error("Unrecognized message:", message.type);
     }
   }
 });
 
+async function initializeAudio() {
+  if (!audioContext) {
+    audioContext = new AudioContext();
+  }
+}
+
+async function getAudioStreams(streamId) {
+  await initializeAudio();
+
+  // Vérifiez si les flux sont déjà actifs
+  if (activeStreams.length > 0) {
+    return activeStreams; // Retournez les flux existants
+  }
+
+  const tabStream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      mandatory: {
+        chromeMediaSource: "tab",
+        chromeMediaSourceId: streamId,
+      },
+    },
+    video: false,
+  });
+
+  const micStream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+    video: false,
+  });
+
+  activeStreams.push(tabStream, micStream); // Stockez les flux actifs
+  return { tabStream, micStream };
+}
+
+async function setupAudioConnections(tabStream, micStream) {
+  const tabSource = audioContext.createMediaStreamSource(tabStream);
+  const micSource = audioContext.createMediaStreamSource(micStream);
+  const destination = audioContext.createMediaStreamDestination();
+
+  const tabGain = audioContext.createGain();
+  const micGain = audioContext.createGain();
+
+  tabGain.gain.value = 1.0; // Normal tab volume
+  micGain.gain.value = 1.5; // Slightly boosted mic volume
+
+  tabSource.connect(tabGain);
+  tabGain.connect(audioContext.destination);
+  tabGain.connect(destination);
+  micSource.connect(micGain);
+  micGain.connect(destination);
+
+  return destination;
+}
+
 async function startRecording(streamId) {
   if (recorder?.state === "recording") {
     throw new Error("Called startRecording while recording is in progress.");
   }
 
-  await stopAllStreams();
+  //await stopAllStreams();
 
   try {
-    // Get tab audio stream
-    const tabStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        mandatory: {
-          chromeMediaSource: "tab",
-          chromeMediaSourceId: streamId,
-        },
-      },
-      video: false,
-    });
-
-    // Get microphone stream with noise cancellation
-    const micStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-      },
-      video: false,
-    });
-
-    activeStreams.push(tabStream, micStream);
-
-    // Create audio context
-    const audioContext = new AudioContext();
-
-    // Create sources and destination
-    const tabSource = audioContext.createMediaStreamSource(tabStream);
-    const micSource = audioContext.createMediaStreamSource(micStream);
-    const destination = audioContext.createMediaStreamDestination();
-
-    // Create gain nodes
-    const tabGain = audioContext.createGain();
-    const micGain = audioContext.createGain();
-
-    // Set gain values
-    tabGain.gain.value = 1.0; // Normal tab volume
-    micGain.gain.value = 1.5; // Slightly boosted mic volume
-
-    // Connect tab audio to both speakers and recorder
-    tabSource.connect(tabGain);
-    tabGain.connect(audioContext.destination);
-    tabGain.connect(destination);
-
-    // Connect mic to recorder only (prevents echo)
-    micSource.connect(micGain);
-    micGain.connect(destination);
+    const { tabStream, micStream } = await getAudioStreams(streamId);
+    const destination = await setupAudioConnections(tabStream, micStream);
 
     // Start recording
     recorder = new MediaRecorder(destination.stream, {
@@ -140,8 +151,6 @@ async function stopRecording() {
 
   await stopAllStreams();
   window.location.hash = "";
-
-
 }
 
 async function stopAllStreams() {

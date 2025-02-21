@@ -30,9 +30,7 @@ const handleTranscribeRequest = async (req, res) => {
         stream.on('finish', async () => {
 
 
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ text: "transcription réussie", data: "Bonjouron va commencer. comment vas tu ?" }));
-                return;
+
             try {
                 // 📌 2. Obtenir une URL signée pour récupérer le fichier
                 const [url] = await fileUpload.getSignedUrl({
@@ -61,7 +59,7 @@ const handleTranscribeRequest = async (req, res) => {
 
                 console.log(whisperResponse.data);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify(whisperResponse.data));
+                res.end(JSON.stringify({ data: whisperResponse.data }));
 
             } catch (error) {
                 console.error('Erreur lors de la transcription :', error.response?.data || error.message);

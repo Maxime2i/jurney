@@ -84,11 +84,6 @@ async function startRecording(streamId) {
       const blob = new Blob(data, { type: "audio/webm" });
       const url = URL.createObjectURL(blob);
 
-      const downloadLink = document.createElement("a");
-      downloadLink.href = url;
-      downloadLink.download = `new-${new Date().toISOString()}.webm`;
-      downloadLink.click();
-
       // Envoi de l'audio à l'API de transcription
       const formData = new FormData();
       formData.append('audio', blob, `recording-${new Date().toISOString()}.webm`);
@@ -103,10 +98,12 @@ async function startRecording(streamId) {
           throw new Error('Erreur lors de l\'envoi de l\'audio à l\'API');
         }
 
+        const transcription = await response.json();
+
         chrome.runtime.sendMessage({
           type: "transcribe",
           target: "popup",
-          data: response.data.text,
+          data: transcription.data,
         });
       } catch (error) {
         console.error("Erreur lors de l'envoi de l'audio:", error);

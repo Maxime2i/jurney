@@ -1,50 +1,85 @@
 const multer = require('multer');
-const { bucket } = require('../firebase'); // Assurez-vous d'importer le bucket Firebase
+const { bucket } = require('../firebase');
+const axios = require('axios');
+const FormData = require('form-data');
 
 // Configuration de multer pour le stockage en mémoire
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Fonction pour gérer la requête de transcription
+const OPENAI_API_KEY = 'YOUR_OPENAI_API_KEY'; // Remplace par ta clé API
+
 const handleTranscribeRequest = async (req, res) => {
     try {
-        const file = req.file; // Récupérer le fichier téléchargé
-
+        const file = req.file;
         if (!file) {
-            return res.status(400).send('Aucun fichier téléchargé.');
+            res.writeHead(400, { 'Content-Type': 'text/plain' });
+            res.end('Aucun fichier fourni.');
+            return;
         }
 
-        // Chemin du fichier dans le bucket Firebase
+        // 📌 1. Uploader le fichier sur Firebase Storage
         const filePath = `transcriptions/${file.originalname}`;
-
-        // Télécharger le fichier sur Firebase
         const fileUpload = bucket.file(filePath);
         const stream = fileUpload.createWriteStream({
-            metadata: {
-                contentType: file.mimetype,
-            },
+            metadata: { contentType: file.mimetype },
         });
 
-        // Écrire le buffer du fichier dans le stream
+        stream.end(file.buffer); // Upload le buffer sur Firebase Storage
+
+        stream.on('finish', async () => {
+
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ text: "transcription réussie", data: "Bonjouron va commencer. comment vas tu ?" }));
+                return;
+            try {
+                // 📌 2. Obtenir une URL signée pour récupérer le fichier
+                const [url] = await fileUpload.getSignedUrl({
+                    action: 'read',
+                    expires: Date.now() + 15 * 60 * 1000, // Expire dans 15 minutes
+                });
+
+                // 📌 3. Télécharger et streamer directement le fichier vers Whisper
+                const response = await axios({
+                    method: 'get',
+                    url,
+                    responseType: 'stream',
+                });
+
+                const formData = new FormData();
+                formData.append('file', response.data, { filename: file.originalname, contentType: file.mimetype });
+                formData.append('model', 'whisper-1');
+                formData.append('language', 'fr'); // Optionnel
+
+                const whisperResponse = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
+                    headers: {
+                        ...formData.getHeaders(),
+                        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+                    }
+                });
+
+                console.log(whisperResponse.data);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(whisperResponse.data));
+
+            } catch (error) {
+                console.error('Erreur lors de la transcription :', error.response?.data || error.message);
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                res.end('Erreur lors de la transcription.');
+            }
+        });
+
         stream.on('error', (error) => {
-            console.error('Erreur lors du téléchargement sur Firebase:', error);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ message: 'Fichier audio traité avec succès.', data: 'test' }));
+            console.error('Erreur lors de l’upload Firebase:', error);
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end('Erreur lors de l’upload Firebase.');
         });
 
-        stream.on('finish', () => {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ message: 'Fichier audio traité avec succès.', data: 'test' }));
-        });
-
-        // Écrire le buffer dans le stream
-        stream.end(file.buffer); // Passer le buffer directement ici
-
-        
     } catch (error) {
-        console.error('Erreur lors du téléchargement sur Firebase:', error);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ message: 'Erreur lors du téléchargement du fichier.', error: error.message }));
+        console.error('Erreur générale:', error);
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Erreur générale.');
     }
 };
 

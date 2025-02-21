@@ -4,6 +4,9 @@ const chatGptRequest = async (input) => {
     const apiKey = process.env.OPENAI_API_KEY; // Assurez-vous que votre clé API est stockée dans les variables d'environnement
     const url = 'https://api.openai.com/v1/chat/completions';
 
+
+
+return "ceci est la reponde de gpt"; // Retourne la réponse de l'IA
     try {
         const response = await axios.post(url, {
             model: 'gpt-3.5-turbo', // ou le modèle que vous souhaitez utiliser

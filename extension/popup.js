@@ -2,13 +2,14 @@
 const startButton = document.getElementById("startRecord");
 const stopButton = document.getElementById("stopRecord");
 const responseDiv = document.getElementById("response");
+const recordingStatus = document.getElementById("recordingStatus");
+const sendButton = document.getElementById("sendRecording");
 
-
+let transcriptions = []; // Stocker les transcriptions
 
 startButton.addEventListener("click", async () => {
   startButton.style.display = "none";
   stopButton.style.display = "block";
-  responseDiv.textContent = "start";
 
   const [tab] = await chrome.tabs.query({
     active: true,
@@ -40,13 +41,10 @@ startButton.addEventListener("click", async () => {
     data: streamId,
   });
 
-
-
   setTimeout(() => {
     chrome.runtime.sendMessage({ target: "offscreen", type: "stop-recording" });
     startButton.click();
   }, 5000);
-
 });
 
 stopButton.addEventListener("click", () => {
@@ -56,7 +54,6 @@ stopButton.addEventListener("click", () => {
 
   chrome.runtime.sendMessage({ target: "offscreen", type: "stop-recording" });
 });
-
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message.target === "popup") {
@@ -71,8 +68,40 @@ chrome.runtime.onMessage.addListener((message) => {
         stopButton.style.display = "none";
         break;
       case "transcribe":
-        responseDiv.textContent += message.data;
+        transcriptions.push(message.data); // Ajouter la transcription à la liste
+        if (message.data.endsWith("?")) { // Vérifier si c'est une question
+          const lastPeriodIndex = message.data.lastIndexOf('.');
+          const question = lastPeriodIndex !== -1 ? message.data.substring(lastPeriodIndex + 1).trim() : message.data.trim();
+          recordingStatus.value = question; // Afficher uniquement la question
+          
+          // Déclencher l'événement input manuellement
+          recordingStatus.dispatchEvent(new Event('input'));
+
+          // Vider la liste des transcriptions
+          transcriptions = [];
+        }
         break;
     }
   }
+});
+
+// Ajoutez cet écouteur d'événements pour surveiller les changements dans l'input
+recordingStatus.addEventListener("input", () => {
+  sendButton.disabled = !recordingStatus.value.trim(); // Désactive le bouton si l'input est vide
+});
+
+// Initialisez l'état du bouton au chargement
+sendButton.disabled = !recordingStatus.value.trim(); // Désactive le bouton si l'input est vide
+
+sendButton.addEventListener("click", () => {
+  const question = recordingStatus.value;
+
+  fetch(`http://localhost:1500/api/chatgpt`, {
+    method: "POST",
+    body: JSON.stringify({ input: question }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      responseDiv.textContent = data.response;
+    });
 });

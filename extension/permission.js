@@ -6,13 +6,13 @@ document
       stream.getTracks().forEach((track) => track.stop());
 
       document.getElementById("status").textContent =
-        "Permission granted! You can close this tab.";
+        "Autorisation accordée ! Vous pouvez fermer cette onglet.";
 
       setTimeout(() => {
         window.close();
       }, 2000);
     } catch (error) {
       document.getElementById("status").textContent =
-        "Permission denied. Please try again.";
+        "Permission refusée. Veuillez réessayer.";
     }
   });

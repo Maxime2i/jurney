@@ -7,6 +7,35 @@ const sendButton = document.getElementById("sendRecording");
 let transcriptions = ""; 
 let recordingTimeout;
 
+let permissionStatus = document.getElementById("permissionStatus");
+
+function showError(message) {
+  permissionStatus.textContent = message;
+  permissionStatus.style.display = "block";
+}
+
+function hideError() {
+  permissionStatus.style.display = "none";
+}
+
+async function checkMicrophonePermission() {
+  try {
+    await navigator.mediaDevices.getUserMedia({ audio: true });
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Check recording state when popup opens
+async function checkRecordingState() {
+  const hasPermission = await checkMicrophonePermission();
+  if (!hasPermission) {
+    chrome.tabs.create({ url: "permission.html" });
+    return;
+  }
+}
+
 function saveRecordingState(isRecording) {
   localStorage.setItem('isRecording', isRecording);
 }
@@ -60,7 +89,7 @@ stopButton.addEventListener("click", () => {
   chrome.runtime.sendMessage({ target: "offscreen", type: "stop-recording" });
 });
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const isRecording = localStorage.getItem('isRecording') === 'true';
   if (isRecording) {
     startButton.style.display = "none";
@@ -69,6 +98,9 @@ document.addEventListener("DOMContentLoaded", () => {
     startButton.style.display = "block";
     stopButton.style.display = "none";
   }
+
+  // Appeler checkRecordingState pour vérifier l'état de l'enregistrement
+  await checkRecordingState();
 });
 
 chrome.runtime.onMessage.addListener((message) => {

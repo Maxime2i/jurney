@@ -10,7 +10,12 @@ chrome.runtime.onMessage.addListener(async (message) => {
         await startRecording(message.data);
         break;
       case "stop-recording":
-        stopRecording();
+        socket.close()
+       
+          alert('Transcription ended')
+  
+       
+        // stopRecording();
         break;
       default:
         throw new Error("Unrecognized message:", message.type);
@@ -18,144 +23,60 @@ chrome.runtime.onMessage.addListener(async (message) => {
   }
 });
 
-async function initializeAudio() {
-  if (!audioContext) {
-    audioContext = new AudioContext();
-  }
-}
+let socket
 
-async function getAudioStreams(streamId) {
-  await initializeAudio();
 
-  if (activeStreams.length > 0) {
-    return activeStreams; 
-  }
 
-  const tabStream = await navigator.mediaDevices.getUserMedia({
-    audio: {
-      mandatory: {
-        chromeMediaSource: "tab",
-        chromeMediaSourceId: streamId,
-      },
-    },
-    video: false,
-  });
+async function startRecording(){
 
-  const micStream = await navigator.mediaDevices.getUserMedia({
-    audio: {
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
-    },
-    video: false,
-  });
+  navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then(async screenStream => {
+    if(screenStream.getAudioTracks().length == 0) return alert('You must share your tab with audio. Refresh the page.')
 
-  activeStreams.push(tabStream, micStream); 
-  return { tabStream, micStream };
-}
+    const micStream = await navigator.mediaDevices.getUserMedia({ audio: true })
 
-async function setupAudioConnections(tabStream, micStream) {
-  const tabSource = audioContext.createMediaStreamSource(tabStream);
-  const micSource = audioContext.createMediaStreamSource(micStream);
-  const destination = audioContext.createMediaStreamDestination();
+    const audioContext = new AudioContext()
+    const mixed = mix(audioContext, [screenStream, micStream])
+    const recorder = new MediaRecorder(mixed, { mimeType: 'audio/webm' })
 
-  const tabGain = audioContext.createGain();
-  const micGain = audioContext.createGain();
+    socket = new WebSocket('wss://api.deepgram.com/v1/listen?language=fr', ['token', "3d8c2608786640ac493a1e902680e5727f3a1642"])
 
-  tabGain.gain.value = 1.0; 
-  micGain.gain.value = 1.5;
+    recorder.addEventListener('dataavailable', evt => {
+        if(evt.data.size > 0 && socket.readyState == 1) socket.send(evt.data)
+    })
 
-  tabSource.connect(tabGain);
-  tabGain.connect(audioContext.destination);
-  tabGain.connect(destination);
-  micSource.connect(micGain);
-  micGain.connect(destination);
+    socket.onopen = () => { recorder.start(250) }
 
-  return destination;
-}
+    socket.onmessage = msg => {
+        const { transcript } = JSON.parse(msg.data)?.channel?.alternatives[0]
 
-async function startRecording(streamId) {
-  if (recorder?.state === "recording") {
-    throw new Error("Called startRecording while recording is in progress.");
-  }
 
-  try {
-    const { tabStream, micStream } = await getAudioStreams(streamId);
-    const destination = await setupAudioConnections(tabStream, micStream);
+        if(transcript) {
+            localStorage.setItem("transcript", transcript)
+          
+               
 
-    recorder = new MediaRecorder(destination.stream, {
-      mimeType: "audio/webm",
-    });
-    recorder.ondataavailable = (event) => data.push(event.data);
-    recorder.onstop = async () => {
-      const blob = new Blob(data, { type: "audio/webm" });
-      const url = URL.createObjectURL(blob);
-
-      const formData = new FormData();
-      formData.append('audio', blob, `recording-${new Date().toISOString()}.webm`);
-
-      try {
-        const response = await fetch('https://jurney-bice.vercel.app/api/transcribe', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error('Erreur lors de l\'envoi de l\'audio à l\'API');
+                // Throws error when popup is closed, so this swallows the errors.
+                chrome.runtime.sendMessage({ type: 'transcribe', target: 'popup' }).catch(err => ({}))
+    
         }
+    }
+})
 
-        const transcription = await response.json();
 
-        chrome.runtime.sendMessage({
-          type: "transcribe",
-          target: "popup",
-          data: transcription.data,
-        });
-      } catch (error) {
-        console.error("Erreur lors de l'envoi de l'audio:", error);
-      }
 
-      URL.revokeObjectURL(url);
-      recorder = undefined;
-      data = [];
 
-      chrome.runtime.sendMessage({
-        type: "recording-stopped",
-        target: "service-worker",
-      });
-    };
-
-    recorder.start();
-    window.location.hash = "recording";
-
-  } catch (error) {
-    console.error("Error starting recording:", error);
-    chrome.runtime.sendMessage({
-      type: "recording-error",
-      target: "popup",
-      error: error.message,
-    });
-  }
-}
-
-async function stopRecording() {
-  if (recorder && recorder.state === "recording") {
-    recorder.stop();
-  }
-
-  await stopAllStreams();
-  window.location.hash = "";
-}
-
-async function stopAllStreams() {
-  activeStreams.forEach((stream) => {
-    stream.getTracks().forEach((track) => {
-      track.stop();
-    });
-  });
-
-  activeStreams = [];
-  await new Promise((resolve) => setTimeout(resolve, 100));
 }
 
 
+
+
+
+// https://stackoverflow.com/a/47071576
+function mix(audioContext, streams) {
+    const dest = audioContext.createMediaStreamDestination()
+    streams.forEach(stream => {
+        const source = audioContext.createMediaStreamSource(stream)
+        source.connect(dest);
+    })
+    return dest.stream
+}

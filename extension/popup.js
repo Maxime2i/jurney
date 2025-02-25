@@ -73,10 +73,10 @@ startButton.addEventListener("click", async () => {
     data: streamId,
   });
 
-  recordingTimeout = setTimeout(() => {
-    chrome.runtime.sendMessage({ target: "offscreen", type: "stop-recording" });
-    startButton.click();
-  }, 5000);
+  // recordingTimeout = setTimeout(() => {
+  //   chrome.runtime.sendMessage({ target: "offscreen", type: "stop-recording" });
+  //   startButton.click();
+  // }, 5000);
 });
 
 stopButton.addEventListener("click", () => {
@@ -129,8 +129,13 @@ chrome.runtime.onMessage.addListener((message) => {
         //   // Réinitialiser la chaîne de transcriptions
         //   transcriptions = "";
         // }
-        recordingStatus.value += message.data.text + " ";
-        recordingStatus.dispatchEvent(new Event('input'));
+        // recordingStatus.value += message.data.text + " ";
+        // recordingStatus.dispatchEvent(new Event('input'));
+
+        recordingStatus.value += "test";
+        const transcript = localStorage.getItem("transcript")
+          responseDiv.textContent += transcript; 
+
         break;
     }
   }
@@ -153,7 +158,7 @@ recordingStatus.addEventListener('input', () => {
 sendButton.addEventListener("click", () => {
   const question = recordingStatus.value;
 
-  fetch(`https://jurney-bice.vercel.app/api/chatgpt`, {
+  fetch(`https://jurney-bice.vercel.app/api/chatgp`, {
     method: "POST",
     body: JSON.stringify({ input: question }),
   })

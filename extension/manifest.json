@@ -7,9 +7,6 @@
   "action": {
     "default_popup": "popup.html"
   },
-  "background": {
-    "service_worker": "service-worker.js"
-  },
   "permissions": ["tabCapture", "offscreen", "activeTab", "storage"],
   "host_permissions": ["*://*/*"],
   "web_accessible_resources": [

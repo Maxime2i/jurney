@@ -4,7 +4,7 @@ const responseDiv = document.getElementById("response");
 const recordingStatus = document.getElementById("recordingStatus");
 const sendButton = document.getElementById("sendRecording");
 
-let transcriptions = ""; 
+let transcriptions = "";
 let recordingTimeout;
 
 let permissionStatus = document.getElementById("permissionStatus");
@@ -37,11 +37,11 @@ async function checkRecordingState() {
 }
 
 function saveRecordingState(isRecording) {
-  localStorage.setItem('isRecording', isRecording);
+  localStorage.setItem("isRecording", isRecording);
 }
 
 startButton.addEventListener("click", async () => {
-  saveRecordingState(true); 
+  saveRecordingState(true);
   startButton.style.display = "none";
   stopButton.style.display = "block";
 
@@ -72,32 +72,35 @@ startButton.addEventListener("click", async () => {
     target: "offscreen",
     data: streamId,
   });
-
-  // recordingTimeout = setTimeout(() => {
-  //   chrome.runtime.sendMessage({ target: "offscreen", type: "stop-recording" });
-  //   startButton.click();
-  // }, 5000);
 });
 
 stopButton.addEventListener("click", () => {
-  saveRecordingState(false); 
+  saveRecordingState(false);
   console.log("Bouton Arrêter cliqué");
   stopButton.style.display = "none";
   startButton.style.display = "block";
 
-  clearTimeout(recordingTimeout); 
+  clearTimeout(recordingTimeout);
   chrome.runtime.sendMessage({ target: "offscreen", type: "stop-recording" });
 });
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const isRecording = localStorage.getItem('isRecording') === 'true';
+  const isRecording = localStorage.getItem("isRecording") === "true";
   if (isRecording) {
     startButton.style.display = "none";
     stopButton.style.display = "block";
   } else {
     startButton.style.display = "block";
     stopButton.style.display = "none";
+    recordingStatus.value = "";
+    localStorage.setItem('transcript', " ");
   }
+
+  // Récupérer la transcription du localStorage
+  const savedTranscript = localStorage.getItem("transcript") || "";
+  recordingStatus.value = savedTranscript; // Mettre à jour le champ avec la transcription sauvegardée
+  recordingStatus.dispatchEvent(new Event("input"));
+
 
   // Appeler checkRecordingState pour vérifier l'état de l'enregistrement
   await checkRecordingState();
@@ -116,49 +119,38 @@ chrome.runtime.onMessage.addListener((message) => {
         stopButton.style.display = "none";
         break;
       case "transcribe":
-        // transcriptions += message.data.text + " "; // Ajouter la transcription à la chaîne
-        // responseDiv.textContent = transcriptions; // Afficher la chaîne de transcriptions
-        // if (message.data.text.includes("?")) { // Vérifier si c'est une question
-        //   const lastPeriodIndex = transcriptions.lastIndexOf('.'); // Trouver le dernier point dans la chaîne
-        //   const question = lastPeriodIndex !== -1 ? transcriptions.substring(lastPeriodIndex + 1).trim() : transcriptions.trim();
-        //   recordingStatus.value = question; // Afficher uniquement la question
-          
-        //   // Déclencher l'événement input manuellement
-        //   recordingStatus.dispatchEvent(new Event('input'));
+        const transcript = localStorage.getItem("transcript");
+        recordingStatus.value = transcript;
+        recordingStatus.dispatchEvent(new Event("input"));
 
-        //   // Réinitialiser la chaîne de transcriptions
-        //   transcriptions = "";
-        // }
-        // recordingStatus.value += message.data.text + " ";
-        // recordingStatus.dispatchEvent(new Event('input'));
-
-        recordingStatus.value += "test";
-        const transcript = localStorage.getItem("transcript")
-          responseDiv.textContent += transcript; 
-
+        const automaticRadio = document.querySelector('input[name="mode"]:checked'); 
+        if (automaticRadio && automaticRadio.value === "automatic" && recordingStatus.value.includes("?")) {
+            sendButton.click(); 
+        }        
         break;
     }
   }
 });
 
 function autoResizeTextarea() {
-  this.style.height = 'auto';
-  this.style.height = (this.scrollHeight) + 'px'; 
+  this.style.height = "auto";
+  this.style.height = this.scrollHeight + "px";
 }
 
-recordingStatus.addEventListener('input', autoResizeTextarea);
+recordingStatus.addEventListener("input", autoResizeTextarea);
 
-sendButton.disabled = !recordingStatus.value.trim(); 
+sendButton.disabled = !recordingStatus.value.trim();
 
-recordingStatus.addEventListener('input', () => {
+recordingStatus.addEventListener("input", () => {
   sendButton.disabled = !recordingStatus.value.trim();
-  autoResizeTextarea.call(recordingStatus); 
+  localStorage.setItem('transcript', recordingStatus.value)
+  autoResizeTextarea.call(recordingStatus);
 });
 
 sendButton.addEventListener("click", () => {
   const question = recordingStatus.value;
 
-  fetch(`https://jurney-bice.vercel.app/api/chatgp`, {
+  fetch(`https://jurney-bice.vercel.app/api/chatgpt`, {
     method: "POST",
     body: JSON.stringify({ input: question }),
   })

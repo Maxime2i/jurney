@@ -8,6 +8,7 @@ let transcriptions = "";
 let recordingTimeout;
 
 let permissionStatus = document.getElementById("permissionStatus");
+let responseHistory = [];
 
 function showError(message) {
   permissionStatus.textContent = message;
@@ -123,7 +124,7 @@ chrome.runtime.onMessage.addListener((message) => {
         recordingStatus.value = transcript;
         recordingStatus.dispatchEvent(new Event("input"));
 
-        const automaticRadio = document.querySelector('input[name="mode"]:checked'); 
+        const automaticRadio = document.querySelector('input[name="sendMode"]:checked'); 
         if (automaticRadio && automaticRadio.value === "automatic" && recordingStatus.value.includes("?")) {
             sendButton.click(); 
         }        
@@ -149,13 +150,16 @@ recordingStatus.addEventListener("input", () => {
 
 sendButton.addEventListener("click", () => {
   const question = recordingStatus.value;
+  recordingStatus.value = "";
+  recordingStatus.dispatchEvent(new Event("input"));
 
-  fetch(`https://jurney-bice.vercel.app/api/chatgpt`, {
+  fetch(`https://jurney-ten.vercel.app/api/chatgpt`, {
     method: "POST",
     body: JSON.stringify({ input: question }),
   })
     .then((response) => response.json())
     .then((data) => {
       responseDiv.textContent = data.response;
+      responseHistory.push(data.response);
     });
 });
